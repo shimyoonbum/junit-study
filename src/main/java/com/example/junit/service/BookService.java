@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.junit.domain.Book;
 import com.example.junit.domain.BookRepository;
+import com.example.junit.util.MailSender;
 import com.example.junit.web.dto.request.BookSaveReqDto;
 import com.example.junit.web.dto.response.BookListRespDto;
 import com.example.junit.web.dto.response.BookRespDto;
@@ -21,18 +22,23 @@ import lombok.RequiredArgsConstructor;
 public class BookService {
 
     private final BookRepository bookRepository;
+    private final MailSender mailSender;
 
     // 1. 책등록
     @Transactional(rollbackOn = RuntimeException.class)
     public BookRespDto 책등록하기(BookSaveReqDto dto) {
         Book bookPS = bookRepository.save(dto.toEntity());
-        //return new BookRespDto().toDto(bookPS);
-        return bookPS.toDto();
+        if (bookPS != null) {
+            if (!mailSender.send()) {
+                throw new RuntimeException("메일이 전송되지 않았습니다");
+            }
+            return bookPS.toDto();
+        }
+        return null;
     }   
 
     // 2. 책목록보기
     public BookListRespDto 책목록보기() {
-        
         List<BookRespDto> dtos = bookRepository.findAll().stream()
                 //.map((bookPS) -> bookPS.toDto())
                  .map(Book::toDto)
